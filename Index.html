@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prototipo Plataforma Virtual</title>
+    <style>
+        /* ==========================================================================
+           1. ESTILOS BASE Y RESET
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* ==========================================================================
+           2. CONTENEDOR DEL DISPOSITIVO MÓVIL (MAQUETA)
+           ========================================================================== */
+        .dispositivo-movil {
+            width: 360px;
+            height: 740px;
+            background-color: #000000;
+            border-radius: 40px;
+            padding: 12px;
+            box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.3);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dispositivo-movil::before {
+            content: '';
+            position: absolute;
+            top: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 15px;
+            background-color: #000000;
+            border-radius: 10px;
+            z-index: 10;
+        }
+
+        .pantalla {
+            flex: 1;
+            background-color: #ffffff;
+            border-radius: 32px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pantalla-contenido {
+            flex: 1;
+            background-color: #ffffff;
+            border: 10px solid #e2f4de; 
+            border-radius: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 35px 20px 25px 20px;
+            position: relative;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .vista-app {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        .vista-app.activa {
+            display: flex;
+        }
+
+        /* ==========================================================================
+           3. UI KIT COMPARTIDO
+           ========================================================================== */
+        .titulo-pantalla {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1a1a1a;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        .grupo-formulario {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .entrada-texto {
+            width: 100%;
+            background-color: #c9eff1;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 14px;
+            color: #558789;
+            font-weight: 600;
+            text-align: center;
+            outline: none;
+        }
+
+        .entrada-texto::placeholder { color: #79aeb1; text-transform: uppercase; }
+
+        .boton-primario {
+            width: 100%;
+            background-color: #09bcbc;
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+
+        .contenedor-enlaces { text-align: center; margin-bottom: 5px; }
+        .texto-secundario { font-size: 11px; color: #09bcbc; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; display: block; }
+        .enlace-accion { font-size: 13px; color: #09bcbc; font-weight: bold; text-decoration: underline; text-transform: uppercase; cursor: pointer; }
+
+        .contenedor-avatar-circular {
+            width: 105px;
+            height: 105px;
+            border: 4px solid #4cd0ce;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #ffffff;
+            transition: border-color 0.3s;
+        }
+        .svg-avatar { width: 80px; height: 80px; fill: #4cd0ce; transition: fill 0.3s; }
+        .avatar-rosa { border-color: #ff8da1 !important; }
+        .avatar-rosa .svg-avatar { fill: #ff8da1 !important; }
+
+        .etiqueta-gris { font-size: 16px; font-weight: bold; color: #8c8c8c; text-transform: uppercase; width: 100%; text-align: center; flex-shrink: 0; }
+
+        .barra-superior-navegacion { display: flex; align-items: center; width: 100%; margin-bottom: 15px; position: relative; flex-shrink: 0; }
+        .boton-atras { width: 38px; height: 38px; background-color: #5ecfcf; border-radius: 8px; display: flex; justify-content: center; align-items: center; color: white; cursor: pointer; position: absolute; left: 0; z-index: 5; }
+        .titulo-centrado { width: 100%; text-align: center; margin: 0; font-size: 18px; }
+
+        .barra-progreso-contenedor {
+            width: 100%;
+            height: 48px;
+            background-color: #dcedce;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .barra-progreso-llenado { height: 100%; background-color: #3ec4c4; transition: width 0.3s ease; }
+        .texto-porcentaje { position: absolute; width: 100%; text-align: center; font-size: 26px; font-weight: bold; color: #ffffff; }
+
+        /* ==========================================================================
+           4. SCROLLS Y MENÚS (CONFIGURACIÓN Y CHECKLIST)
+           ========================================================================== */
+        .contenedor-scroll-config { width: 100%; display: flex; flex-direction: column; gap: 16px; flex: 1; overflow-y: auto; padding-right: 4px; margin-top: 5px; }
+        .contenedor-scroll-config::-webkit-scrollbar { width: 0px; }
+        .item-configuracion { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 100%; }
+        .etiqueta-icono-texto { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: bold; color: #8c8c8c; }
+        .fila-opciones-switches { display: flex; justify-content: space-between; width: 100%; gap: 5px; }
+        .opcion-switch-individual { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+        .texto-opcion-gris { font-size: 12px; font-weight: bold; color: #8c8c8c; }
+        .switch-capsula { width: 55px; height: 26px; background-color: #dcedce; border-radius: 15px; position: relative; cursor: pointer; transition: background-color 0.2s; }
+        .switch-capsula::after { content: ''; position: absolute; width: 22px; height: 20px; border-radius: 8px; background-color: #3ec4c4; top: 3px; left: 4px; transition: transform 0.2s; }
+        .switch-capsula.encendido::after { transform: translateX(25px); }
+        .switch-capsula.apagado::after { transform: translateX(0); background-color: #b3d1d3; }
+        .switch-capsula.apagado { background-color: #e3ebd3; }
+        .boton-cerrar-sesion { width: 100%; background-color: #e67e7e; color: white; border: none; padding: 10px; font-size: 14px; font-weight: bold; border-radius: 10px; cursor: pointer; text-transform: uppercase; margin-top: 15px; margin-bottom: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+        .contenedor-scroll-checklist { width: 100%; display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto; padding-right: 5px; margin-top: 5px; margin-bottom: 10px; }
+        .contenedor-scroll-checklist::-webkit-scrollbar { width: 0px; }
+        .subtitulo-checklist-alerta { font-size: 10px; font-weight: bold; color: #00bcbc; text-transform: uppercase; margin-top: -5px; margin-bottom: 8px; text-align: center; flex-shrink: 0; }
+        .bloque-acordeon-checklist { width: 100%; display: flex; flex-direction: column; align-items: flex-start; flex-shrink: 0; }
+        .cabecera-acordeon { background-color: #d5d5d5; color: #5c5c5c; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; text-transform: uppercase; }
+        .cabecera-acordeon svg { transition: transform 0.2s; }
+        .bloque-acordeon-checklist.abierto .cabecera-acordeon svg { transform: rotate(180deg); }
+        .contenido-desplegable { max-height: 0; overflow: hidden; width: 100%; transition: max-height 0.3s ease-out; font-size: 11px; color: #666; font-weight: 600; padding-left: 5px; }
+        .bloque-acordeon-checklist.abierto .contenido-desplegable { max-height: 250px; margin-top: 6px; margin-bottom: 4px; }
+        .contenedor-casilla-check { margin-top: 5px; margin-bottom: 5px; display: inline-block; }
+        .checkbox-custom { width: 26px; height: 26px; border: 3px solid #3ec4c4; border-radius: 6px; cursor: pointer; position: relative; background-color: white; transition: background-color 0.2s; }
+        .checkbox-custom.marcado { background-color: #3ec4c4; }
+        .checkbox-custom.marcado::after { content: ''; position: absolute; left: 6px; top: 1px; width: 6px; height: 12px; border: solid white; border-width: 0 3px 3px 0; transform: rotate(45deg); }
+        .boton-mapa-simulado { background-color: #09bcbc; color: white; border: none; padding: 3px 10px; font-size: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 5px; display: inline-block; text-transform: uppercase; }
+
+        /* ==========================================================================
+           5. PANTALLAS DE ESTADO Y NUEVA CONFIRMACIÓN DE QR
+           ========================================================================== */
+        .contenedor-estado-solicitud {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            padding-left: 15px;
+            margin-top: 10px;
+            flex-shrink: 0;
+        }
+
+        .fila-estado-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #929292;
+        }
+
+        .icono-v-verde {
+            color: #3bc4c4;
+            display: flex;
+            align-items: center;
+            font-weight: 900;
+        }
+
+        /* Centro QR interactivo */
+        .area-dinamica-qr {
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .seccion-escanear-qr {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .etiqueta-confirmar-qr { font-size: 15px; font-weight: bold; color: #8c8c8c; text-transform: uppercase; text-align: center; }
+
+        .boton-qr-interactivo {
+            width: 95px;
+            height: 95px;
+            background-color: #09bcbc;
+            border-radius: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(9, 188, 188, 0.2);
+            animation: pulsoAtencion 2s infinite ease-in-out;
+        }
+
+        .subtexto-instruccion-qr { font-size: 9px; font-weight: bold; color: #00bcbc; text-transform: uppercase; text-align: center; max-width: 180px; line-height: 1.3; }
+
+        /* Estilos Pantalla 8: Nueva Confirmación Expresa */
+        .texto-alerta-asistencia { font-size: 18px; font-weight: 200; color: #09bcbc; text-align: center; line-height: 1.3; }
+         
+        .recuadro-check-grande {
+            width: 85px;
+            height: 85px;
+            background-color: #09bcbc;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            box-shadow: 0 6px 15px rgba(9, 188, 188, 0.3);
+            margin: 10px 0;
+        }
+
+        /* Bloque informativo del Aula Asignada */
+        .tarjeta-aula-info {
+            width: 100%;
+            background-color: #c9eff1;
+            border-radius: 12px;
+            padding: 12px 15px;
+            color: #3b6668;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1.5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .subtexto-suerte { font-size: 11px; font-weight: bold; color: #00bcbc; text-align: center; margin-top: 5px; }
+
+        @keyframes pulsoAtencion {
+            0% { box-shadow: 0 0 0 0 rgba(9, 188, 188, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(9, 188, 188, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(9, 188, 188, 0); }
+        }
+
+        /* ==========================================================================
+           6. COMPONENTES ADICIONALES (HISTORIAL Y MI CURSO)
+           ========================================================================== */
+        .barra-superior-curso { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 15px; flex-shrink: 0; }
+        .boton-icono-cuadrado { width: 38px; height: 38px; background-color: #5ecfcf; border-radius: 8px; display: flex; justify-content: center; align-items: center; color: white; cursor: pointer; }
+        .contenedor-seccion-curso { width: 100%; display: flex; flex-direction: column; align-items: center; flex: 1; justify-content: flex-start; gap: 15px; }
+        .subtexto-alerta { font-size: 11px; font-weight: bold; color: #8c8c8c; margin-top: -8px; }
+        .etiqueta-estado-pendiente { background-color: #c9eff1; color: #438487; font-size: 18px; font-weight: bold; padding: 8px 22px; border-radius: 10px; text-transform: uppercase; }
+        .bocadillo-mensaje { position: relative; background: #bbf0f2; border-radius: 12px; padding: 15px; width: 100%; color: #3b6668; font-size: 13px; font-weight: bold; line-height: 1.4; margin-top: 10px; }
+        .bocadillo-mensaje::after { content: ''; position: absolute; left: -12px; top: 15px; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-right: 12px solid #bbf0f2; }
+        
+        /* Contenedor optimizado con scroll interno por si la lista crece */
+        .contenedor-lista-historial { width: 100%; display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: auto; padding-right: 2px; margin-bottom: 10px; }
+        .contenedor-lista-historial::-webkit-scrollbar { width: 0px; }
+        
+        /* Estilos de las nuevas Tarjetas del Historial */
+        .tarjeta-historial-curso {
+            width: 100%;
+            background-color: #f7f9f9;
+            border-left: 5px solid #09bcbc;
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }
+        .encabezado-tarjeta { display: flex; justify-content: space-between; align-items: center; }
+        .nombre-parcial { font-size: 13px; font-weight: bold; color: #1a1a1a; text-transform: uppercase; }
+        .modalidad-tarjeta { font-size: 10px; background-color: #dcedce; color: #438487; padding: 2px 6px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
+        .modalidad-tarjeta.presencial { background-color: #ff8da1; color: #ffffff; }
+        .fecha-tarjeta { font-size: 11px; color: #777777; font-weight: 600; }
+
+        .selector-avatar { display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 5px; width: 100%; }
+        .flecha-seleccion { width: 0; height: 0; border-top: 15px solid transparent; border-bottom: 15px solid transparent; cursor: pointer; }
+        .flecha-izquierda { border-right: 20px solid #09bcbc; }
+        .flecha-derecha { border-left: 20px solid #09bcbc; }
+        .etiqueta-genero { font-size: 12px; font-weight: bold; color: #1a1a1a; text-transform: uppercase; margin-top: 5px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="dispositivo-movil">
+        <div class="pantalla">
+            <div class="pantalla-contenido">
+                
+                <div id="vista-registro" class="vista-app activa">
+                    <h2 class="titulo-pantalla">Registro</h2>
+                    
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div class="selector-avatar">
+                            <div class="flecha-seleccion flecha-izquierda" onclick="alternarAvatar()"></div>
+                            <div id="contenedor-avatar-registro" class="contenedor-avatar-circular">
+                                <svg class="svg-avatar" viewBox="0 0 24 24">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5-4-8-4z"/>
+                                </svg>
+                            </div>
+                            <div class="flecha-seleccion flecha-derecha" onclick="alternarAvatar()"></div>
+                        </div>
+                        <div id="avatar-etiqueta" class="etiqueta-genero">Hombre</div>
+                    </div>
+
+                    <div class="grupo-formulario">
+                        <input type="text" class="entrada-texto" placeholder="Nombre">
+                        <input type="text" class="entrada-texto" placeholder="Apellido">
+                        <input type="text" class="entrada-texto" placeholder="Carnet de Identidad">
+                        <input type="password" class="entrada-texto" placeholder="Contraseña">
+                        <button class="boton-primario" onclick="navegarA('vista-login')">Aceptar</button>
+                    </div>
+
+                    <div class="contenedor-enlaces">
+                        <span class="texto-secundario">¿Tienes una cuenta?</span>
+                        <span class="enlace-accion" onclick="navegarA('vista-login')">Inicia Sesion</span>
+                    </div>
+                </div>
+
+                <div id="vista-login" class="vista-app">
+                    <div id="contenedor-avatar-login" class="contenedor-avatar-circular">
+                        <svg class="svg-avatar" viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5-4-8-4z"/>
+                        </svg>
+                    </div>
+
+                    <h2 class="titulo-pantalla">Inicia Sesion</h2>
+
+                    <div class="grupo-formulario">
+                        <input type="text" class="entrada-texto" placeholder="Carnet de Identidad">
+                        <input type="password" class="entrada-texto" placeholder="Contraseña">
+                        <button class="boton-primario" onclick="navegarA('vista-mi-curso')">Aceptar</button>
+                    </div>
+
+                    <div class="contenedor-enlaces">
+                        <span class="texto-secundario">¿No tienes una cuenta?</span>
+                        <span class="enlace-accion" onclick="navegarA('vista-registro')">Registrate</span>
+                    </div>
+                </div>
+
+                <div id="vista-mi-curso" class="vista-app">
+                    <div class="barra-superior-curso">
+                        <div class="boton-icono-cuadrado" onclick="navegarA('vista-configuracion')">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73-1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l-.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+                        </div>
+                        <h2 class="titulo-pantalla" style="margin-top:0;">Mi Curso</h2>
+                        <div class="boton-icono-cuadrado" onclick="navegarA('vista-historial')">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+                        </div>
+                    </div>
+
+                    <div class="contenedor-seccion-curso">
+                        <div class="etiqueta-gris">Progreso del Curso</div>
+                        <div class="barra-progreso-contenedor">
+                            <div class="barra-progreso-llenado" style="width: 90%;"></div>
+                            <div class="texto-porcentaje">90%</div>
+                        </div>
+                        <div class="subtexto-alerta">¡Todo listo para tu evaluación!</div>
+
+                        <div class="etiqueta-gris" style="margin-top:10px;">Estado</div>
+                        <div class="etiqueta-estado-pendiente">Pendiente</div>
+
+                        <div class="bocadillo-mensaje">
+                            Ya cumplís con el porcentaje para rendir tu examen final
+                        </div>
+                    </div>
+
+                    <div style="width: 100%; text-align: center;">
+                        <span class="texto-secundario" style="font-size:10px; margin-bottom: 6px;">Pasar al Checklist</span>
+                        <button class="boton-primario" onclick="navegarA('vista-checklist')">Siguiente</button>
+                    </div>
+                </div>
+
+                <div id="vista-configuracion" class="vista-app">
+                    <div class="barra-superior-navegacion">
+                        <div class="boton-atras" onclick="navegarA('vista-mi-curso')">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+                        </div>
+                        <h2 class="titulo-pantalla titulo-centrado">Configuracion</h2>
+                    </div>
+
+                    <div class="contenedor-scroll-config">
+                        <div class="item-configuracion">
+                            <div class="etiqueta-icono-texto">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+                                Activar/desactivar notificaciones
+                            </div>
+                            <div class="switch-capsula encendido" onclick="toggleSwitch(this)"></div>
+                        </div>
+
+                        <div class="item-configuracion">
+                            <div class="etiqueta-icono-texto">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+                                Preferencias de recordatorios
+                            </div>
+                            <div class="fila-opciones-switches">
+                                <div class="opcion-switch-individual">
+                                    <span class="texto-opcion-gris">Normal</span>
+                                    <div class="switch-capsula encendido" onclick="toggleSwitch(this)"></div>
+                                </div>
+                                <div class="opcion-switch-individual">
+                                    <span class="texto-opcion-gris">Medio</span>
+                                    <div class="switch-capsula apagado" onclick="toggleSwitch(this)"></div>
+                                </div>
+                                <div class="opcion-switch-individual">
+                                    <span class="texto-opcion-gris">Intensivo</span>
+                                    <div class="switch-capsula apagado" onclick="toggleSwitch(this)"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="item-configuracion">
+                            <div class="etiqueta-icono-texto">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/></svg>
+                                Idioma
+                            </div>
+                            <div class="fila-opciones-switches">
+                                <div class="opcion-switch-individual">
+                                    <span class="texto-opcion-gris">Español</span>
+                                    <div class="switch-capsula encendido" onclick="toggleSwitch(this)"></div>
+                                </div>
+                                <div class="opcion-switch-individual">
+                                    <span class="texto-opcion-gris">Portugues</span>
+                                    <div class="switch-capsula apagado" onclick="toggleSwitch(this)"></div>
+                                </div>
+                                <div class="opcion-switch-individual">
+                                    <span class="texto-opcion-gris">Ingles</span>
+                                    <div class="switch-capsula apagado" onclick="toggleSwitch(this)"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="boton-cerrar-sesion" onclick="navegarA('vista-login')">Cerrar Sesion</button>
+                    </div>
+                </div>
+
+                <div id="vista-historial" class="vista-app">
+                    <div class="barra-superior-navegacion">
+                        <div class="boton-atras" onclick="navegarA('vista-mi-curso')">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+                        </div>
+                        <h2 class="titulo-pantalla titulo-centrado">Historial</h2>
+                    </div>
+
+                    <div class="contenedor-lista-historial">
+                        <div class="etiqueta-gris" style="font-size: 14px; margin-bottom: 5px; color: #09bcbc;">Curso: Marketing</div>
+
+                        <div class="tarjeta-historial-curso">
+                            <div class="encabezado-tarjeta">
+                                <span class="nombre-parcial">Parcial 1</span>
+                                <span class="modalid-tarjeta modalidad-tarjeta">Virtual</span>
+                            </div>
+                            <span class="fecha-tarjeta">Inicio: 15 Enero</span>
+                        </div>
+
+                        <div class="tarjeta-historial-curso">
+                            <div class="encabezado-tarjeta">
+                                <span class="nombre-parcial">Parcial 2</span>
+                                <span class="modalid-tarjeta modalidad-tarjeta">Virtual</span>
+                            </div>
+                            <span class="fecha-tarjeta">Inicio: 15 Febrero</span>
+                        </div>
+
+                        <div class="tarjeta-historial-curso">
+                            <div class="encabezado-tarjeta">
+                                <span class="nombre-parcial">Parcial 3</span>
+                                <span class="modalid-tarjeta modalidad-tarjeta">Virtual</span>
+                            </div>
+                            <span class="fecha-tarjeta">Inicio: 15 Mayo</span>
+                        </div>
+
+                        <div class="tarjeta-historial-curso" style="border-left-color: #ff8da1;">
+                            <div class="encabezado-tarjeta">
+                                <span class="nombre-parcial" style="color: #bc3e54;">Parcial Final</span>
+                                <span class="modalidad-tarjeta presencial">Presencial</span>
+                            </div>
+                            <span class="fecha-tarjeta">Inicio: 30 Mayo</span>
+                        </div>
+                    </div>
+                    <div style="height: 20px;"></div>
+                </div>
+
+                <div id="vista-checklist" class="vista-app">
+                    <div class="barra-superior-navegacion">
+                        <div class="boton-atras" onclick="navegarA('vista-mi-curso')">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+                        </div>
+                        <h2 class="titulo-pantalla titulo-centrado" style="letter-spacing:0;">Checklist</h2>
+                    </div>
+                    
+                    <div class="subtitulo-checklist-alerta">Completa estos pasos para llegar con todo listo</div>
+
+                    <div class="etiqueta-gris" style="font-size:14px; margin-bottom: 4px;">Estado</div>
+                    
+                    <div class="barra-progreso-contenedor" style="height: 38px; margin-bottom: 10px;">
+                        <div id="progreso-checklist-barra" class="barra-progreso-llenado" style="width: 0%;"></div>
+                        <div id="progreso-checklist-texto" class="texto-porcentaje" style="font-size:20px;">0%</div>
+                    </div>
+
+                    <div class="contenedor-scroll-checklist">
+                        <div class="bloque-acordeon-checklist">
+                            <div class="cabecera-acordeon" onclick="toggleAcordeon(this)">Confirmo hora y fecha <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></div>
+                            <div class="contenido-desplegable">Fecha: Viernes 30 de mayo<br>Hora: 18:00 hrs<br>Se recomienda llegar 15 minutos antes.</div>
+                            <div class="contenedor-casilla-check"><div class="checkbox-custom" onclick="toggleCasilla(this)"></div></div>
+                        </div>
+
+                        <div class="bloque-acordeon-checklist">
+                            <div class="cabecera-acordeon" onclick="toggleAcordeon(this)">Se como llegar <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></div>
+                            <div class="contenido-desplegable">Dirección: Sede EduFlex – Av. Principal 123<br>Acceso disponible en mapa integrado.<br><button class="boton-mapa-simulado" onclick="alert('Abriendo mapa interactivo de la Sede...')">Ver mapa</button></div>
+                            <div class="contenedor-casilla-check"><div class="checkbox-custom" onclick="toggleCasilla(this)"></div></div>
+                        </div>
+
+                        <div class="bloque-acordeon-checklist">
+                            <div class="cabecera-acordeon" onclick="toggleAcordeon(this)">Tengo mis documentos <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></div>
+                            <div class="contenido-desplegable">• Documento de identidad vigente (obligatorio)<br>• Material permitido según el curso<br>• No se permite ingreso sin identificación</div>
+                            <div class="contenedor-casilla-check"><div class="checkbox-custom" onclick="toggleCasilla(this)"></div></div>
+                        </div>
+
+                        <div class="bloque-acordeon-checklist">
+                            <div class="cabecera-acordeon" onclick="toggleAcordeon(this)">Revise las normas de la evaluacion <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></div>
+                            <div class="contenido-desplegable" style="line-height: 1.3;">• Duración máxima de 90 minutos.<br>• Obligatorio documento de identidad válido.<br>• Prohibido celulares o dispositivos electrónicos.<br>• Usar únicamente material autorizado.<br>• No se permite ingreso tarde.<br>• Mantener silencio absoluto.<br> Seguir indicaciones del personal.</div>
+                            <div class="contenedor-casilla-check"><div class="checkbox-custom" onclick="toggleCasilla(this)"></div></div>
+                        </div>
+                    </div>
+
+                    <button class="boton-primario" onclick="navegarA('vista-estado-solicitud')">Siguiente</button>
+                </div>
+
+                <div id="vista-estado-solicitud" class="vista-app">
+                    <div class="barra-superior-navegacion">
+                        <div class="boton-atras" onclick="navegarA('vista-checklist')">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+                        </div>
+                        <h2 class="titulo-pantalla titulo-centrado" style="letter-spacing:0;">Estado de Solicitud</h2>
+                    </div>
+
+                    <div class="etiqueta-gris" style="font-size:14px; margin-bottom: 2px;">Estado</div>
+
+                    <div class="contenedor-estado-solicitud">
+                        <div class="fila-estado-item"><span class="icono-v-verde">✓</span> Evaluación programada</div>
+                        <div class="fila-estado-item"><span class="icono-v-verde">✓</span> En preparación</div>
+                        <div class="fila-estado-item"><span class="icono-v-verde">✓</span> Lista para rendir</div>
+                    </div>
+
+                    <div class="area-dinamica-qr">
+                        <div class="seccion-escanear-qr">
+                            <div class="etiqueta-confirmar-qr">Confirmar<br>QR Asistencia</div>
+                            
+                            <div class="boton-qr-interactivo" onclick="simularLecturaQR()">
+                                <svg width="50" height="50" fill="currentColor" viewBox="0 0 24 24"><path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm14-2h6v6h-6V3zm2 2v2h2V5h-2zM3 15h6v6H3v-6zm2 2v2h2v-2H5zm10-2h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm2-4h2v2h-2v-2zm2 4h2v2h-2v-2zM11 3h2v2h-2V3zm0 4h2v2h-2V7zm2 4h2v2h-2v-2zm-4 2h2v2h-2v-2zm2-4h2v2h-2v-2zm-4 0h2v2H9v-2zm6-6h2v2h-2V5zm-4 14h2v2h-2v-2z"/></svg>
+                            </div>
+                            
+                            <div class="subtexto-instruccion-qr">Escanea el QR del totem para confirmar tu asistencia</div>
+                        </div>
+                    </div>
+
+                    <div style="height: 40px;"></div>
+                </div>
+
+                <div id="vista-confirmacion-asistencia" class="vista-app">
+                    <div class="barra-superior-navegacion">
+                        <div class="boton-atras" onclick="navegarA('vista-estado-solicitud')">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+                        </div>
+                        <h2 class="titulo-pantalla titulo-centrado" style="letter-spacing:0;">Asistencia Registrada</h2>
+                    </div>
+
+                    <div class="etiqueta-gris" style="font-size:14px; margin-bottom: 2px;">Estado Actual</div>
+
+                    <div class="contenedor-estado-solicitud">
+                        <div class="fila-estado-item"><span class="icono-v-verde">✓</span> Evaluación programada</div>
+                        <div class="fila-estado-item"><span class="icono-v-verde">✓</span> En preparación</div>
+                        <div class="fila-estado-item"><span class="icono-v-verde">✓</span> Lista para rendir</div>
+                        <div class="fila-estado-item" style="color: #3bc4c4;"><span class="icono-v-verde">✓</span> QR escaneado correctamente</div>
+                    </div>
+
+                    <div class="area-dinamica-qr" style="gap: 12px; justify-content: center;">
+                        <div class="texto-alerta-asistencia">¡TU ASISTENCIA<br><strong>FUE REGISTRADA!</strong></div>
+                        
+                        <div class="recuadro-check-grande">
+                            <svg width="50" height="50" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+
+                        <div class="tarjeta-aula-info">
+                            <div style="font-size: 11px; text-transform: uppercase; color: #558789; margin-bottom: 3px;">Ubicación Asignada</div>
+                            <div style="font-size: 16px; color: #1e4446;">Aula 204 — Bloque B</div>
+                            <div style="font-size: 11px; font-weight: normal; color: #437678; margin-top: 2px;">Piso 2 — Laboratorio de Cómputo</div>
+                        </div>
+                        
+                        <div class="subtexto-suerte">¡Mucha Suerte en tu evaluacion!</div>
+                    </div>
+
+                    <button class="boton-primario" onclick="alert('¡Todo listo! El prototipo interactivo ha finalizado con éxito.')">Finalizar</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function navegarA(idVista) {
+            const vistas = document.querySelectorAll('.vista-app');
+            vistas.forEach(vista => vista.classList.remove('activa'));
+
+            const vistaDestino = document.getElementById(idVista);
+            if (vistaDestino) {
+                vistaDestino.classList.add('activa');
+            }
+        }
+
+        function toggleSwitch(elemento) {
+            if (elemento.classList.contains('encendido')) {
+                elemento.classList.remove('encendido');
+                elemento.classList.add('apagado');
+            } else {
+                elemento.classList.remove('apagado');
+                elemento.classList.add('encendido');
+            }
+        }
+
+        let generoActual = "Hombre";
+        function alternarAvatar() {
+            const txtElement = document.getElementById('avatar-etiqueta');
+            const avatarRegistro = document.getElementById('contenedor-avatar-registro');
+            const avatarLogin = document.getElementById('contenedor-avatar-login');
+            
+            if (generoActual === "Hombre") {
+                generoActual = "Mujer";
+                txtElement.innerText = "Mujer";
+                avatarRegistro.classList.add('avatar-rosa');
+                avatarLogin.classList.add('avatar-rosa');
+            } else {
+                generoActual = "Hombre";
+                txtElement.innerText = "Hombre";
+                avatarRegistro.classList.remove('avatar-rosa');
+                avatarLogin.classList.remove('avatar-rosa');
+            }
+        }
+
+        function toggleAcordeon(elementoCabecera) {
+            const bloquePadre = elementoCabecera.parentElement;
+            bloquePadre.classList.toggle('abierto');
+        }
+
+        function toggleCasilla(elementoCasilla) {
+            elementoCasilla.classList.toggle('marcado');
+            calcularProgresoChecklist();
+        }
+
+        function calcularProgresoChecklist() {
+            const totalCasillas = document.querySelectorAll('#vista-checklist .checkbox-custom').length;
+            const marcadas = document.querySelectorAll('#vista-checklist .checkbox-custom.marcado').length;
+            const porcentajeCalculado = Math.round((marcadas / totalCasillas) * 100);
+            
+            const barra = document.getElementById('progreso-checklist-barra');
+            const texto = document.getElementById('progreso-checklist-texto');
+            
+            barra.style.width = porcentajeCalculado + '%';
+            texto.innerText = porcentajeCalculado + '%';
+        }
+
+        function simularLecturaQR() {
+            const botonQr = document.querySelector('.boton-qr-interactivo');
+            botonQr.style.transform = 'scale(0.85)';
+            
+            setTimeout(() => {
+                botonQr.style.transform = 'scale(1)';
+                navegarA('vista-confirmacion-asistencia');
+            }, 300);
+        }
+    </script>
+</body>
+</html>
